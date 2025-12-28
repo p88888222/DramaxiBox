@@ -1,98 +1,55 @@
-// Ubah dari URL asli ke path proxy
-const API_BASE = window.location.hostname === 'localhost' 
-    ? "https://api.sansekai.my.id/api/dramabox" 
-    : "/api-proxy/dramabox";
+const API_BASE = "https://api.sansekai.my.id/api/dramabox";
 
-// Sisa kode callApi tetap sama
 async function callApi(path) {
     try {
         const response = await fetch(`${API_BASE}${path}`);
-        if (!response.ok) throw new Error('Network response was not ok');
         const result = await response.json();
         
-        // Memastikan data diambil dengan benar dari struktur API
-        const finalData = result.data || result;
-        return Array.isArray(finalData) ? finalData : [];
+        console.log(`Debug API Path ${path}:`, result);
+
+        // Menangani berbagai kemungkinan bungkus data (result.data, result.data.data, dll)
+        let rawData = result.data || result;
+        if (rawData && rawData.data) rawData = rawData.data;
+
+        // Pastikan hasil akhirnya adalah Array
+        return Array.isArray(rawData) ? rawData : [];
     } catch (error) {
-        console.error("Fetch error:", error);
+        console.error("Gagal memproses API:", error);
         return [];
     }
 }
 
-// 1. Render Drama ke Grid
 async function renderDrama(path, label) {
     const grid = document.getElementById('dramaGrid');
     document.getElementById('sectionLabel').innerText = label;
-    grid.innerHTML = '<div class="col-span-2 text-center py-10 opacity-50">Memuat drama...</div>';
+    grid.innerHTML = '<div class="col-span-2 text-center py-10 opacity-50">Memuat data...</div>';
 
-    const dramas = await callApi(path);
+    const items = await callApi(path);
     grid.innerHTML = '';
 
-    if (dramas.length === 0) {
-        grid.innerHTML = '<div class="col-span-2 text-center py-10 text-yellow-500">Data tidak ditemukan.</div>';
+    if (items.length === 0) {
+        grid.innerHTML = `<div class="col-span-2 text-center py-10 text-yellow-500">Data ${label} tidak ditemukan.</div>`;
         return;
     }
 
-    dramas.forEach(item => {
-        const card = document.createElement('div');
-        card.className = "cursor-pointer group";
-        card.onclick = () => openDetail(item.bookId, item.bookName);
-        card.innerHTML = `
-            <div class="aspect-[3/4] rounded-xl overflow-hidden bg-slate-800 mb-2 shadow-lg">
-                <img src="${item.cover || 'https://via.placeholder.com/150x200?text=No+Cover'}" 
-                     class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
-            </div>
-            <h3 class="text-xs font-semibold line-clamp-2">${item.bookName}</h3>
-        `;
-        grid.appendChild(card);
+    items.forEach(item => {
+        // Logika Ekstraksi: Mengambil data bookId dan bookName pada masing-masing path
+        // Karena tiap path mungkin punya nama field berbeda (misal: 'id' atau 'bookId')
+        const id = item.bookId || item.id || item.bookid;
+        const name = item.bookName || item.title || item.name || item.bookname;
+        const cover = item.cover || item.thumb || item.image || 'https://via.placeholder.com/150x200?text=No+Cover';
+
+        if (id && name) {
+            const card = document.createElement('div');
+            card.className = "cursor-pointer group animate-slideUp";
+            card.onclick = () => openDetail(id, name);
+            card.innerHTML = `
+                <div class="aspect-[3/4] rounded-xl overflow-hidden bg-slate-800 mb-2 shadow-lg">
+                    <img src="${cover}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                </div>
+                <h3 class="text-[11px] font-semibold line-clamp-2">${name}</h3>
+            `;
+            grid.appendChild(card);
+        }
     });
 }
-
-// 2. Fungsi Pindah Tab
-function changeTab(type) {
-    // Update UI tombol aktif
-    document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('tab-active'));
-    event.currentTarget.classList.add('tab-active');
-
-    const labels = {
-        'trending': 'Drama Trending',
-        'latest': 'Drama Terbaru',
-        'foryou': 'Rekomendasi Untukmu',
-        'dubindo': 'Drama Dub Indo',
-        'vip': 'Halaman VIP',
-        'populersearch': 'Pencarian Populer'
-    };
-
-    renderDrama(`/${type}`, labels[type]);
-}
-
-// 3. Modal Detail & Episode
-async function openDetail(id, name) {
-    const modal = document.getElementById('detailModal');
-    const epList = document.getElementById('modalEpisodes');
-    
-    modal.classList.remove('hidden');
-    epList.innerHTML = '<p class="text-gray-500 text-sm animate-pulse">Mengambil daftar episode...</p>';
-
-    const episodes = await callApi(`/allepisode?id=${id}`);
-    epList.innerHTML = '';
-
-    if (episodes.length === 0) {
-        epList.innerHTML = '<p class="text-yellow-500 text-sm italic">Episode belum tersedia.</p>';
-    } else {
-        episodes.forEach((ep, index) => {
-            const btn = document.createElement('button');
-            btn.className = "w-full text-left bg-[#161b2c] p-3 rounded-lg text-sm border border-gray-700 hover:border-red-500 transition";
-            btn.innerHTML = `<i class="fa-solid fa-play text-red-500 mr-3"></i> Episode ${index + 1}`;
-            btn.onclick = () => window.open(ep.videoUrl || ep.url, '_blank');
-            epList.appendChild(btn);
-        });
-    }
-}
-
-function closeModal() {
-    document.getElementById('detailModal').classList.add('hidden');
-}
-
-// Jalankan saat pertama kali dibuka
-window.onload = () => renderDrama('/latest', 'Drama Terbaru');
