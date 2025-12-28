@@ -1,12 +1,8 @@
 {
-  "version": 2,
-  "cleanUrls": true,
-  "headers": [
+  "rewrites": [
     {
-      "source": "/(.*)",
-      "headers": [
-        { "key": "Access-Control-Allow-Origin", "value": "*" }
-      ]
+      "source": "/api-proxy/:path*",
+      "destination": "https://api.sansekai.my.id/api/:path*"
     }
   ]
 }
