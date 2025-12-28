@@ -275,6 +275,111 @@ async function openDetail(bid, bname, intro) {
     } catch (e) {
         epList.innerHTML = '<p class="text-red-500 text-sm text-center">Gagal memuat.</p>';
     }
+// Menggunakan proxy Vercel untuk kestabilan koneksi
+const API_BASE = window.location.hostname === 'localhost' 
+    ? "https://api.sansekai.my.id/api/dramabox" 
+    : "/api-proxy/dramabox";
+
+let currentEpisodes = [];
+let currentIndex = -1;
+
+// Fungsi fetch dengan penanganan error agar tidak macet
+async function callApi(path) {
+    try {
+        const response = await fetch(`${API_BASE}${path}`, {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' }
+        });
+        
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        
+        const result = await response.json();
+        
+        // Normalisasi data (mengambil array dari berbagai kemungkinan struktur JSON)
+        let finalData = result.data || result;
+        if (finalData && finalData.data) finalData = finalData.data;
+
+        return Array.isArray(finalData) ? finalData : [];
+    } catch (error) {
+        console.error("API Fetch Failure:", error);
+        return []; // Kembalikan array kosong agar aplikasi tidak crash
+    }
+}
+
+// Handler Pencarian yang diperbaiki
+async function handleSearch() {
+    const query = document.getElementById('searchInput').value.trim();
+    if (query) {
+        renderDrama(`/search?s=${encodeURIComponent(query)}`, `HASIL: ${query.toUpperCase()}`);
+    }
+}
+
+document.getElementById('searchInput')?.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') handleSearch();
+});
+
+async function renderDrama(path, label) {
+    const grid = document.getElementById('dramaGrid');
+    document.getElementById('sectionLabel').innerText = label;
+    grid.innerHTML = '<div class="col-span-full text-center py-20 text-red-500 animate-pulse">Menghubungkan ke server...</div>';
+
+    const items = await callApi(path);
+    grid.innerHTML = '';
+
+    if (items.length === 0) {
+        grid.innerHTML = `<div class="col-span-full text-center py-20 text-gray-500 text-sm italic">Data tidak ditemukan atau server sibuk.</div>`;
+        return;
+    }
+
+    items.forEach(item => {
+        const bid = item.bookId || item.id;
+        const bname = item.bookName || item.title;
+        const img = item.coverWap || item.cover || 'https://via.placeholder.com/300x400?text=No+Image';
+
+        const card = document.createElement('div');
+        card.className = "cursor-pointer group animate-slideUp";
+        card.onclick = () => openDetail(bid, bname, item.introduction);
+        card.innerHTML = `
+            <div class="relative aspect-[3/4] rounded-xl overflow-hidden bg-slate-800 mb-2 shadow-lg">
+                <img src="${img}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+            </div>
+            <h3 class="text-[11px] font-semibold line-clamp-2 text-gray-200">${bname || 'Judul Tidak Ada'}</h3>
+        `;
+        grid.appendChild(card);
+    });
+}
+
+async function openDetail(bid, bname, intro) {
+    const modal = document.getElementById('detailModal');
+    const epList = document.getElementById('modalEpisodes');
+    const videoContainer = document.getElementById('videoPlayerContainer');
+    
+    modal.classList.remove('hidden');
+    videoContainer.classList.add('hidden'); 
+    document.body.style.overflow = 'hidden';
+    
+    document.getElementById('modalTitle').innerText = bname;
+    document.getElementById('modalDesc').innerText = intro || "Deskripsi tidak tersedia.";
+    epList.innerHTML = '<div class="text-center py-10"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Loading Episode...</div>';
+
+    try {
+        currentEpisodes = await callApi(`/allepisode?bookId=${bid}`);
+        epList.innerHTML = '';
+
+        if (currentEpisodes.length === 0) {
+            epList.innerHTML = '<p class="text-yellow-600 text-center py-4 text-xs">Episode gagal dimuat.</p>';
+        } else {
+            currentEpisodes.forEach((ep, i) => {
+                const btn = document.createElement('button');
+                btn.className = "w-full text-left bg-[#161b2c] p-4 rounded-xl text-xs border border-gray-800 hover:border-red-600 mb-2 flex justify-between items-center transition";
+                btn.innerHTML = `<span><i class="fa-solid fa-play text-red-600 mr-3"></i> Episode ${i + 1}</span>`;
+                btn.onclick = () => playEpisode(i);
+                epList.appendChild(btn);
+            });
+        }
+    } catch (e) {
+        epList.innerHTML = '<p class="text-red-500 text-center">Terjadi kesalahan koneksi.</p>';
+    }
 }
 
 function playEpisode(index) {
@@ -282,34 +387,29 @@ function playEpisode(index) {
     currentIndex = index;
     const ep = currentEpisodes[index];
     const player = document.getElementById('player');
-    const container = document.getElementById('videoPlayerContainer');
-
-    // Penelusuran data video di dalam cdnList sesuai contoh JSON
+    
     let playUrl = "";
-    if (ep.cdnList && ep.cdnList.length > 0) {
+    // Penelusuran CDN yang lebih aman (opsional chaining)
+    if (ep?.cdnList?.[0]?.videoPathList?.[0]) {
         const cdn = ep.cdnList.find(c => c.isDefault === 1) || ep.cdnList[0];
-        if (cdn.videoPathList && cdn.videoPathList.length > 0) {
-            const video = cdn.videoPathList.find(v => v.isDefault === 1) || cdn.videoPathList[0];
-            playUrl = video.videoPath;
-        }
+        const video = cdn.videoPathList.find(v => v.isDefault === 1) || cdn.videoPathList[0];
+        playUrl = video.videoPath;
     }
     if (!playUrl) playUrl = ep.videoUrl || ep.url || ep.play_url;
 
     if (playUrl) {
-        container.classList.remove('hidden');
+        document.getElementById('videoPlayerContainer').classList.remove('hidden');
         player.src = playUrl;
-        player.play();
+        player.load(); // Penting agar video baru di-load
+        player.play().catch(e => console.log("Autoplay blocked"));
         
-        document.getElementById('prevBtn').disabled = (currentIndex === 0);
-        document.getElementById('nextBtn').disabled = (currentIndex === currentEpisodes.length - 1);
+        document.getElementById('prevBtn').style.opacity = (currentIndex === 0) ? "0.3" : "1";
+        document.getElementById('nextBtn').style.opacity = (currentIndex === currentEpisodes.length - 1) ? "0.3" : "1";
         
-        // Auto-Next
         player.onended = () => { if(currentIndex < currentEpisodes.length - 1) playEpisode(currentIndex + 1); };
-
-        // Scroll otomatis ke player
         document.querySelector('#detailModal .overflow-y-auto').scrollTop = 0;
     } else {
-        alert("Link video tidak ditemukan.");
+        alert("Gagal mendapatkan link video.");
     }
 }
 
@@ -317,10 +417,7 @@ document.getElementById('prevBtn').onclick = () => playEpisode(currentIndex - 1)
 document.getElementById('nextBtn').onclick = () => playEpisode(currentIndex + 1);
 
 function changeTab(type, el) {
-    document.querySelectorAll('.nav-btn').forEach(b => {
-        b.classList.remove('tab-active');
-        b.classList.add('text-gray-500');
-    });
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('tab-active'));
     if (el) el.classList.add('tab-active');
 
     const config = {
@@ -328,8 +425,7 @@ function changeTab(type, el) {
         'latest': { p: '/latest', l: 'DRAMA TERBARU' },
         'foryou': { p: '/foryou', l: 'FOR YOU' },
         'dubindo': { p: '/dubindo', l: 'DRAMA DUB INDO' },
-        'vip': { p: '/vip', l: 'DRAMA VIP' },
-        'populersearch': { p: '/populersearch', l: 'POPULER' }
+        'vip': { p: '/vip', l: 'DRAMA VIP' }
     };
 
     const target = config[type] || config['latest'];
@@ -338,7 +434,7 @@ function changeTab(type, el) {
 
 function closeModal() {
     document.getElementById('detailModal').classList.add('hidden');
-    document.getElementById('player').pause();
+    document.getElementById('player').src = ""; // Reset player agar tidak berjalan di background
     document.body.style.overflow = 'auto';
 }
 
