@@ -7,18 +7,16 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { background-color: #0b0f1a; color: #e2e8f0; font-family: 'Inter', sans-serif; overflow-x: hidden; }
+        body { background-color: #0b0f1a; color: #e2e8f0; font-family: 'Inter', sans-serif; }
         .tab-active { color: #ef4444 !important; border-top: 2px solid #ef4444; }
         .modal-animate { animation: slideUp 0.3s ease-out; }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-        ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 10px; }
     </style>
 </head>
 <body class="pb-24">
 
     <header class="p-4 flex justify-between items-center sticky top-0 bg-[#0b0f1a]/90 backdrop-blur-md z-40">
-        <h1 class="text-xl font-bold text-red-600 tracking-tighter">DRAMAXIN</h1>
+        <h1 class="text-xl font-bold text-red-600">DRAMAXIN</h1>
         <button onclick="changeTab('populersearch', this)" class="bg-slate-800/50 px-3 py-1.5 rounded-md text-sm flex items-center gap-2">
             <i class="fa-solid fa-magnifying-glass text-xs"></i> Populer
         </button>
@@ -27,13 +25,13 @@
     <main class="px-4">
         <div class="mb-6">
             <input id="searchInput" type="text" placeholder="Cari drama..." 
-                class="w-full bg-[#161b2c] border-none rounded-lg p-3 text-sm focus:ring-1 focus:ring-red-600 outline-none transition">
+                class="w-full bg-[#161b2c] border-none rounded-lg p-3 text-sm focus:ring-1 focus:ring-red-600 outline-none">
         </div>
 
         <h2 id="sectionLabel" class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Drama Latest</h2>
 
         <div id="dramaGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            <div class="col-span-full text-center py-20 opacity-50">Memuat data...</div>
+            <div class="col-span-full text-center py-20 opacity-50">Memuatkan data...</div>
         </div>
     </main>
 
@@ -45,11 +43,11 @@
                     <button onclick="closeModal()" class="text-gray-400 text-3xl">&times;</button>
                 </div>
                 <hr class="border-gray-700 mb-4">
-                <p id="modalDesc" class="text-sm text-gray-400 mb-6">Tidak ada deskripsi.</p>
-                
-                <h4 class="font-bold text-sm mb-3">Pilih Episode:</h4>
-                <div id="modalEpisodes" class="grid grid-cols-1 gap-2 max-h-72 overflow-y-auto pr-2">
-                    </div>
+                <div id="modalContent">
+                    <p id="modalDesc" class="text-sm text-gray-400 mb-6">Memuatkan detail...</p>
+                    <h4 class="font-bold text-sm mb-3 text-red-500">Daftar Episod:</h4>
+                    <div id="modalEpisodes" class="grid grid-cols-1 gap-2 max-h-72 overflow-y-auto pr-2"></div>
+                </div>
             </div>
         </div>
     </div>
