@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DramaBox Web Clone</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .drama-card:hover { transform: scale(1.05); transition: 0.3s; }
+        body { background-color: #0f172a; color: white; }
+    </style>
+</head>
+<body>
+
+    <nav class="p-4 bg-slate-900 border-b border-slate-700 sticky top-0 z-50">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-red-500">DRAMABOX</h1>
+            <div class="flex gap-2">
+                <input id="searchInput" type="text" placeholder="Cari drama..." class="px-4 py-2 rounded bg-slate-800 border border-slate-600 focus:outline-none focus:border-red-500">
+                <button onclick="searchDrama()" class="bg-red-600 px-4 py-2 rounded hover:bg-red-700">Cari</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto p-6">
+        
+        <div id="playerSection" class="hidden mb-10 bg-black p-4 rounded-lg shadow-xl">
+            <button onclick="closePlayer()" class="text-sm text-slate-400 mb-2 underline">← Kembali ke Daftar</button>
+            <h2 id="playingTitle" class="text-xl font-bold mb-4 text-red-400">Judul Drama</h2>
+            <div class="aspect-video bg-slate-800 flex items-center justify-center rounded overflow-hidden">
+                <video id="videoElement" controls class="w-full h-full">
+                    <source src="" type="video/mp4">
+                    Browser Anda tidak mendukung pemutar video.
+                </video>
+            </div>
+            <div id="episodeList" class="mt-4 grid grid-cols-5 md:grid-cols-10 gap-2">
+                </div>
+        </div>
+
+        <div id="listSection">
+            <h2 class="text-xl font-semibold mb-6 border-l-4 border-red-500 pl-3">Drama Terbaru</h2>
+            <div id="dramaContainer" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+                <p class="text-slate-400">Memuat drama...</p>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const API_BASE = "https://api.sansekai.my.id/api/dramabox";
+
+        // 1. Ambil Drama Terbaru saat Load
+        window.onload = () => fetchDramas(`${API_BASE}/latest`);
+
+        async function fetchDramas(url) {
+            try {
+                const response = await fetch(url);
+                const result = await response.json();
+                displayDramas(result.data || result); // Sesuaikan dengan struktur data API
+            } catch (err) {
+                console.error("Gagal ambil data:", err);
+            }
+        }
+
+        function displayDramas(dramas) {
+            const container = document.getElementById('dramaContainer');
+            container.innerHTML = "";
+
+            dramas.forEach(item => {
+                const card = `
+                    <div onclick="viewDetail('${item.bookId}', '${item.bookName}')" class="drama-card cursor-pointer bg-slate-800 rounded-lg overflow-hidden shadow-lg">
+                        <img src="${item.cover || 'https://via.placeholder.com/150x200?text=No+Image'}" class="w-full h-48 object-cover">
+                        <div class="p-3">
+                            <h3 class="text-sm font-bold truncate">${item.bookName}</h3>
+                            <p class="text-xs text-slate-400 mt-1">ID: ${item.bookId}</p>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += card;
+            });
+        }
+
+        // 2. Fungsi Cari Drama
+        async function searchDrama() {
+            const query = document.getElementById('searchInput').value;
+            if(!query) return;
+            fetchDramas(`${API_BASE}/search?s=${query}`);
+        }
+
+        // 3. Lihat Detail & Episode
+        async function viewDetail(bookId, bookName) {
+            document.getElementById('listSection').classList.add('hidden');
+            document.getElementById('playerSection').classList.remove('hidden');
+            document.getElementById('playingTitle').innerText = bookName;
+
+            try {
+                const res = await fetch(`${API_BASE}/allepisode?id=${bookId}`);
+                const data = await res.json();
+                const episodes = data.data || [];
+
+                const epContainer = document.getElementById('episodeList');
+                epContainer.innerHTML = "";
+
+                episodes.forEach((ep, index) => {
+                    const btn = document.createElement('button');
+                    btn.innerText = index + 1;
+                    btn.className = "bg-slate-700 hover:bg-red-600 p-2 rounded text-center transition";
+                    btn.onclick = () => playVideo(ep.videoUrl); // Sesuaikan field 'videoUrl' dengan API aslinya
+                    epContainer.appendChild(btn);
+                });
+                
+                // Putar episode 1 otomatis
+                if(episodes.length > 0) playVideo(episodes[0].videoUrl);
+
+            } catch (err) {
+                alert("Gagal mengambil episode");
+            }
+        }
+
+        function playVideo(url) {
+            const video = document.getElementById('videoElement');
+            video.src = url;
+            video.play();
+        }
+
+        function closePlayer() {
+            document.getElementById('listSection').classList.remove('hidden');
+            document.getElementById('playerSection').classList.add('hidden');
+            document.getElementById('videoElement').pause();
+        }
+    </script>
+</body>
+</html>
