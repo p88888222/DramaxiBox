@@ -1,15 +1,20 @@
-const API_BASE = "https://api.sansekai.my.id/api/dramabox";
+// Ubah dari URL asli ke path proxy
+const API_BASE = window.location.hostname === 'localhost' 
+    ? "https://api.sansekai.my.id/api/dramabox" 
+    : "/api-proxy/dramabox";
 
-// Fungsi Helper untuk Fetch agar tidak duplikasi code
+// Sisa kode callApi tetap sama
 async function callApi(path) {
     try {
         const response = await fetch(`${API_BASE}${path}`);
+        if (!response.ok) throw new Error('Network response was not ok');
         const result = await response.json();
-        // Cek apakah data ada di result.data atau result
+        
+        // Memastikan data diambil dengan benar dari struktur API
         const finalData = result.data || result;
         return Array.isArray(finalData) ? finalData : [];
     } catch (error) {
-        console.error("Error fetching API:", error);
+        console.error("Fetch error:", error);
         return [];
     }
 }
