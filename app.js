@@ -1,4 +1,4 @@
-// Proxy Vercel digunakan untuk mencegah Mixed Content/CORS
+// Menggunakan proxy Vercel untuk menghindari Mixed Content/CORS
 const API_BASE = window.location.hostname === 'localhost' 
     ? "https://api.sansekai.my.id/api/dramabox" 
     : "/api-proxy/dramabox";
@@ -8,7 +8,7 @@ async function callApi(path) {
         const response = await fetch(`${API_BASE}${path}`);
         const result = await response.json();
         
-        // Logika fleksibel untuk mendeteksi data dalam array atau objek
+        // Deteksi data fleksibel (result.data atau langsung result)
         let finalData = result.data || result;
         if (finalData && finalData.data) finalData = finalData.data;
 
@@ -22,7 +22,7 @@ async function callApi(path) {
 async function renderDrama(path, label) {
     const grid = document.getElementById('dramaGrid');
     document.getElementById('sectionLabel').innerText = label;
-    grid.innerHTML = '<div class="col-span-full text-center py-20 opacity-50">Memuat konten...</div>';
+    grid.innerHTML = '<div class="col-span-full text-center py-20 opacity-50">Memuat...</div>';
 
     const items = await callApi(path);
     grid.innerHTML = '';
@@ -33,16 +33,14 @@ async function renderDrama(path, label) {
     }
 
     items.forEach(item => {
-        // Mendeteksi ID dan Nama dari berbagai variasi field API
+        // Mendukung berbagai variasi field API (bookId, id, dll)
         const bid = item.bookId || item.id || item.bookid;
         const bname = item.bookName || item.title || item.name;
-        // Menggunakan coverWap sesuai struktur data trending terbaru
         const img = item.coverWap || item.cover || 'https://via.placeholder.com/300x400';
 
-        if (bid && bname) {
+        if (bid) {
             const card = document.createElement('div');
             card.className = "cursor-pointer group animate-slideUp";
-            // Mengirim data ke fungsi detail saat diklik
             card.onclick = () => openDetail(bid, bname, item.introduction);
             card.innerHTML = `
                 <div class="relative aspect-[3/4] rounded-xl overflow-hidden bg-slate-800 mb-2 shadow-lg">
@@ -69,10 +67,8 @@ async function openDetail(bid, bname, intro) {
     epList.innerHTML = '<p class="text-gray-500 text-sm animate-pulse text-center py-4">Mengambil episode...</p>';
 
     try {
-        // Memanggil API episode menggunakan bookid dan bookname yang di-encode
-        const epPath = `/allepisode?bookid=${bid}&bookname=${encodeURIComponent(bname)}`;
-        const episodes = await callApi(epPath);
-        
+        // HANYA MENGGUNAKAN BOOKID (Sesuai instruksi terbaru)
+        const episodes = await callApi(`/allepisode?bookid=${bid}`);
         epList.innerHTML = '';
 
         if (!episodes || episodes.length === 0) {
@@ -80,10 +76,9 @@ async function openDetail(bid, bname, intro) {
         } else {
             episodes.forEach((ep, i) => {
                 const btn = document.createElement('button');
-                btn.className = "w-full text-left bg-[#161b2c] p-4 rounded-xl text-sm border border-gray-800 hover:border-red-600 mb-2 transition flex justify-between";
+                btn.className = "w-full text-left bg-[#161b2c] p-4 rounded-xl text-xs border border-gray-800 hover:border-red-600 mb-2 transition flex justify-between";
                 btn.innerHTML = `<span><i class="fa-solid fa-play text-red-600 mr-3"></i> Episode ${i + 1}</span>`;
                 
-                // Mengambil link video dari data episode
                 const playUrl = ep.videoUrl || ep.url || ep.play_url;
                 btn.onclick = () => window.open(playUrl, '_blank');
                 epList.appendChild(btn);
@@ -91,27 +86,24 @@ async function openDetail(bid, bname, intro) {
         }
     } catch (e) {
         console.error("Gagal memuat episode:", e);
+        epList.innerHTML = '<p class="text-red-500 text-sm text-center">Gagal memuat episode.</p>';
     }
 }
 
 function changeTab(type, el) {
-    // Memperbarui tampilan tab aktif
-    document.querySelectorAll('.nav-btn').forEach(btn => {
-        btn.classList.remove('tab-active');
-        btn.classList.add('text-gray-500');
+    document.querySelectorAll('.nav-btn').forEach(b => {
+        b.classList.remove('tab-active');
+        b.classList.add('text-gray-500');
     });
-    if (el) {
-        el.classList.add('tab-active');
-        el.classList.remove('text-gray-500');
-    }
+    if (el) el.classList.add('tab-active');
 
-    // Mapping path API sesuai dengan gambar dokumentasi
     const config = {
         'trending': { p: '/trending', l: 'DRAMA TRENDING' },
         'latest': { p: '/latest', l: 'DRAMA TERBARU' },
-        'foryou': { p: '/foryou', l: 'FOR YOU' },
-        'dubindo': { p: '/dubindo', l: 'DRAMA DUB INDO' },
-        'vip': { p: '/vip', l: 'DRAMA VIP' }
+        'foryou': { p: '/foryou', l: 'UNTUK ANDA' },
+        'dubindo': { p: '/dubindo', l: 'SULIH SUARA (DUB)' },
+        'vip': { p: '/vip', l: 'DRAMA VIP' },
+        'populersearch': { p: '/populersearch', l: 'POPULER' }
     };
 
     const target = config[type] || config['latest'];
@@ -123,5 +115,5 @@ function closeModal() {
     document.body.style.overflow = 'auto';
 }
 
-// Menjalankan tab Trending saat pertama kali dibuka
+// Default load
 window.onload = () => renderDrama('/trending', 'DRAMA TRENDING');
