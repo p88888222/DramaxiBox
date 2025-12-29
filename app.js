@@ -1,4 +1,4 @@
-// Konfigurasi Basis API
+// Konfigurasi API dengan Proxy Vercel
 const API_BASE = window.location.hostname.includes('vercel.app') 
     ? "/api-proxy/dramabox" 
     : "https://api.sansekai.my.id/api/dramabox";
@@ -6,33 +6,32 @@ const API_BASE = window.location.hostname.includes('vercel.app')
 let epData = [];
 let curIdx = -1;
 
-// Helper: Satu Gerbang untuk Semua Request
+// Gerbang API Universal
 async function apiGet(path) {
     try {
         const res = await fetch(`${API_BASE}${path}`);
-        if (!res.ok) throw new Error("Network Response Error");
+        if (!res.ok) throw new Error("Gagal terhubung ke API");
         const json = await res.json();
         
-        // Ekstraksi data fleksibel dari struktur Dramabox
+        // Ekstraksi data fleksibel (Dramabox format)
         let data = json.data?.data || json.data || json;
         return Array.isArray(data) ? data : [];
     } catch (e) {
-        console.error("API Fetch Failure:", e);
+        console.error("API Fetch Error:", e);
         return [];
     }
 }
 
-// FUNGSI PENCARIAN (Gunakan parameter query)
+// FUNGSI PENCARIAN (Gunakan parameter query sesuai instruksi)
 async function handleSearch() {
     const q = document.getElementById('searchInput').value.trim();
     if (q) {
-        // Menggunakan ?query= sesuai format yang Anda minta
-        renderGrid(`/search?query=${encodeURIComponent(q)}`, `HASIL CARI: ${q.toUpperCase()}`);
-    } else {
-        alert("Masukkan judul drama!");
+        // Mengarahkan ke endpoint /search?query=pewaris
+        renderGrid(`/search?query=${encodeURIComponent(q)}`, `HASIL: ${q.toUpperCase()}`);
     }
 }
 
+// Listener tombol Enter pada kolom pencarian
 document.getElementById('searchInput')?.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') handleSearch();
 });
@@ -49,11 +48,12 @@ async function renderGrid(path, label) {
     grid.innerHTML = "";
 
     if (items.length === 0) {
-        grid.innerHTML = '<div class="col-span-full text-center py-20 text-gray-500">Data tidak ditemukan. Silakan coba tab lain.</div>';
+        grid.innerHTML = '<div class="col-span-full text-center py-20 text-gray-500 text-sm">Drama tidak ditemukan.</div>';
         return;
     }
 
     items.forEach(item => {
+        // Mendukung bookId dan bookName sesuai contoh API pencarian
         const id = item.bookId || item.id;
         const name = item.bookName || item.title || "No Title";
         const cover = item.coverWap || item.cover || "https://via.placeholder.com/300x400";
@@ -71,7 +71,7 @@ async function renderGrid(path, label) {
     });
 }
 
-// Buka Detail & Episod
+// Buka Detail & Episod (Menggunakan bookId)
 async function openDetail(id, title, desc) {
     const modal = document.getElementById('detailModal');
     const epList = document.getElementById('modalEpisodes');
@@ -88,26 +88,26 @@ async function openDetail(id, title, desc) {
     epList.innerHTML = "";
 
     if (epData.length === 0) {
-        epList.innerHTML = '<p class="text-center text-yellow-600 text-xs py-5">Gagal memuat episode.</p>';
+        epList.innerHTML = '<p class="text-center text-yellow-600 text-xs py-5">Episode belum tersedia untuk drama ini.</p>';
     } else {
         epData.forEach((ep, i) => {
             const btn = document.createElement('button');
             btn.className = "w-full text-left bg-[#0b0f1a] p-4 rounded-xl text-[10px] border border-gray-800 flex justify-between items-center mb-1 hover:border-red-600 transition";
-            btn.innerHTML = `<span>EPISODE ${i + 1} - ${ep.chapterName || 'START'}</span><i class="fas fa-play-circle text-red-600"></i>`;
+            btn.innerHTML = `<span>EPISODE ${i + 1} - ${ep.chapterName || 'PLAY'}</span><i class="fas fa-play-circle text-red-600"></i>`;
             btn.onclick = () => playEp(i);
             epList.appendChild(btn);
         });
     }
 }
 
-// Play Video: Navigasi CDN
+// Play Video: Navigasi CDN & Path
 function playEp(idx) {
     if (idx < 0 || idx >= epData.length) return;
     curIdx = idx;
     const ep = epData[idx];
     const player = document.getElementById('mainPlayer');
     
-    // Ekstraksi video path dari cdnList sesuai spesifikasi
+    // Ekstraksi path video sesuai struktur JSON CDN
     let url = "";
     if (ep.cdnList?.[0]?.videoPathList?.[0]) {
         const cdn = ep.cdnList.find(c => c.isDefault === 1) || ep.cdnList[0];
@@ -120,38 +120,39 @@ function playEp(idx) {
         document.getElementById('playerContainer').classList.remove('hidden');
         player.src = url;
         player.load();
-        player.play().catch(() => console.log("Interaction required"));
+        player.play().catch(() => console.log("Menunggu interaksi user..."));
         
-        // Setup tombol Navigasi & Auto-next
+        // Navigasi Prev/Next
         document.getElementById('prevBtn').onclick = () => playEp(curIdx - 1);
         document.getElementById('nextBtn').onclick = () => playEp(curIdx + 1);
+        
+        // Auto-next saat video selesai
         player.onended = () => playEp(curIdx + 1);
         
-        // Auto Scroll ke atas modal agar video terlihat
+        // Reset scroll ke atas modal agar video terlihat di mobile
         document.querySelector('#detailModal .overflow-y-auto').scrollTop = 0;
     } else {
-        alert("Link video tidak tersedia di server.");
+        alert("Maaf, link video tidak tersedia.");
     }
 }
 
-// Fungsi Fullscreen
+// Fullscreen Logic
 function toggleFS() {
     const v = document.getElementById('mainPlayer');
     if (!document.fullscreenElement) {
         if (v.requestFullscreen) v.requestFullscreen();
-        else if (v.webkitRequestFullscreen) v.webkitRequestFullscreen();
+        else if (v.webkitRequestFullscreen) v.webkitRequestFullscreen(); // Safari
     } else {
-        document.exitFullscreen?.();
+        if (document.exitFullscreen) document.exitFullscreen();
     }
 }
 
-// Fitur Tab
+// Tab Navigation
 function changeTab(type, el) {
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('tab-active'));
     el.classList.add('tab-active');
     
     let path = `/${type}`;
-    // Khusus tab dubindo tambahkan parameter classify sesuai contoh Anda
     if (type === 'dubindo') path += "?classify=terbaru&page=1";
     
     renderGrid(path, type.toUpperCase());
@@ -164,5 +165,5 @@ function closeModal() {
     document.body.style.overflow = "auto";
 }
 
-// Jalankan otomatis saat web dibuka
+// Muat tab Trending saat pertama kali buka
 window.onload = () => renderGrid('/trending', 'TRENDING');
