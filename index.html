@@ -7,17 +7,20 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { background-color: #0b0f1a; color: #e2e8f0; font-family: 'Inter', sans-serif; }
+        body { background-color: #0b0f1a; color: #e2e8f0; font-family: 'Inter', sans-serif; overflow-x: hidden; }
         .tab-active { color: #ef4444 !important; border-top: 2px solid #ef4444; }
         .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
         .modal-animate { animation: slideUp 0.3s ease-out; }
+        /* Scrollbar custom agar lebih rapi */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 10px; }
     </style>
 </head>
 <body class="pb-24">
 
     <header class="p-4 flex justify-between items-center sticky top-0 bg-[#0b0f1a]/95 backdrop-blur-md z-40 border-b border-gray-800">
-        <h1 class="text-xl font-bold text-red-600 italic">DRAMAXIN</h1>
+        <h1 class="text-xl font-bold text-red-600 italic tracking-tighter">DRAMAXIN</h1>
     </header>
 
     <main class="px-4 mt-4">
@@ -38,8 +41,9 @@
 
     <div id="detailModal" class="fixed inset-0 bg-black/95 z-50 hidden flex items-end md:items-center justify-center backdrop-blur-sm p-2">
         <div class="bg-[#1c2237] w-full max-w-md rounded-t-2xl md:rounded-2xl overflow-hidden modal-animate shadow-2xl flex flex-col max-h-[95vh]">
-            <div class="p-4 flex justify-between items-center border-b border-gray-800">
-                <h3 id="modalTitle" class="text-sm font-bold truncate mr-4">Detail Drama</h3>
+            
+            <div class="p-4 flex justify-between items-center border-b border-gray-800 bg-[#1c2237] sticky top-0 z-10">
+                <h3 id="modalTitle" class="text-sm font-bold truncate mr-4 text-white">Detail Drama</h3>
                 <button onclick="closeModal()" class="text-gray-400 text-2xl hover:text-white">&times;</button>
             </div>
 
@@ -51,16 +55,23 @@
                             <i class="fas fa-expand mr-1"></i> Fullscreen
                         </button>
                     </div>
+                    
                     <div class="flex justify-between gap-2 mt-4">
-                        <button id="prevBtn" class="flex-1 bg-slate-800 hover:bg-slate-700 py-2.5 rounded-lg text-[10px] font-bold transition">PREV</button>
-                        <button id="nextBtn" class="flex-1 bg-red-600 hover:bg-red-700 py-2.5 rounded-lg text-[10px] font-bold transition text-white">NEXT</button>
+                        <button id="prevBtn" class="flex-1 bg-slate-800 hover:bg-slate-700 py-2.5 rounded-lg text-[10px] font-bold transition text-white">
+                            <i class="fa-solid fa-backward mr-1"></i> PREV
+                        </button>
+                        <button id="nextBtn" class="flex-1 bg-red-600 hover:bg-red-700 py-2.5 rounded-lg text-[10px] font-bold transition text-white">
+                            NEXT <i class="fa-solid fa-forward ml-1"></i>
+                        </button>
                     </div>
                 </div>
 
                 <p id="modalDesc" class="text-[11px] text-gray-400 mb-6 leading-relaxed italic"></p>
+                
                 <h4 class="font-bold text-[10px] text-red-500 mb-3 tracking-widest uppercase flex items-center gap-2">
                     <i class="fa-solid fa-play-circle"></i> Daftar Episode
                 </h4>
+                
                 <div id="modalEpisodes" class="grid grid-cols-1 gap-2 pb-10"></div>
             </div>
         </div>
