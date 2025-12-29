@@ -1,30 +1,34 @@
-const API_BASE = window.location.hostname.includes('vercel.app') ? "/api-proxy/dramabox" : "https://api.sansekai.my.id/api/dramabox";
+const API_BASE = window.location.hostname.includes('vercel.app') 
+    ? "/api-proxy/dramabox" 
+    : "https://api.sansekai.my.id/api/dramabox";
 
 let epData = [];
 let curIdx = -1;
-let allDramaCache = []; // Cache untuk pencarian cepat
+let allDramaCache = []; // Untuk optimasi pencarian
 
 async function apiGet(path) {
     try {
         const res = await fetch(`${API_BASE}${path}`);
+        if (!res.ok) throw new Error("API Offline");
         const json = await res.json();
         let data = json.data?.data || json.data || json;
         return Array.isArray(data) ? data : [];
     } catch (e) {
-        console.error("API Error:", e);
+        console.error("Fetch Failure:", e);
         return [];
     }
 }
 
-// Fungsi Home - Memuat semua drama
+// Fungsi Home - Reset ke awal
 async function goHome() {
     document.getElementById('searchInput').value = "";
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('tab-active'));
-    document.querySelector('.nav-btn').classList.add('tab-active'); // Set trending aktif
-    renderGrid('/trending', 'SEMUA DRAMA');
+    const homeTab = document.querySelector('.nav-btn');
+    if (homeTab) homeTab.classList.add('tab-active');
+    renderGrid('/trending', 'TRENDING');
 }
 
-// Fungsi Pencarian - Metode Pencocokan Client-Side
+// Fungsi Pencarian - Metode Pencocokan Judul (Client-Side)
 async function handleSearch() {
     const query = document.getElementById('searchInput').value.trim().toLowerCase();
     const grid = document.getElementById('dramaGrid');
@@ -32,38 +36,36 @@ async function handleSearch() {
     
     if (!query) return;
 
-    labelEl.innerText = `MENCARI: ${query.toUpperCase()}`;
-    grid.innerHTML = '<div class="col-span-full text-center py-20 text-red-500 animate-pulse font-semibold">Mencocokkan judul...</div>';
+    labelEl.innerText = `HASIL PENCARIAN: ${query.toUpperCase()}`;
+    grid.innerHTML = '<div class="col-span-full text-center py-20 text-red-500 animate-pulse font-semibold">Mencocokkan judul drama...</div>';
 
-    // Ambil dari cache jika sudah ada, jika tidak, fetch sumber utama
-    if (allDramaCache.length === 0) {
-        const [t, l, d] = await Promise.all([
-            apiGet('/trending'),
-            apiGet('/latest'),
-            apiGet('/dubindo?classify=terbaru&page=1')
-        ]);
-        allDramaCache = [...t, ...l, ...d];
-    }
-
-    // Filter unik berdasarkan bookId
+    // Mengambil data dari berbagai sumber untuk dicocokkan
+    const [t, l, d] = await Promise.all([
+        apiGet('/trending'),
+        apiGet('/latest'),
+        apiGet('/dubindo?classify=terbaru&page=1')
+    ]);
+    
+    // Gabungkan dan hilangkan duplikat
+    allDramaCache = [...t, ...l, ...d];
     const unique = Array.from(new Map(allDramaCache.map(item => [item.bookId || item.id, item])).values());
 
-    // Pencocokan Judul
+    // Filter judul yang mengandung kata kunci query
     const filtered = unique.filter(item => {
         const title = (item.bookName || item.title || "").toLowerCase();
         return title.includes(query);
     });
 
-    displayItems(filtered);
+    displayDrama(filtered);
 }
 
-// Render Drama ke Layar
-function displayItems(items) {
+// Menampilkan Data Drama ke Grid
+function displayDrama(items) {
     const grid = document.getElementById('dramaGrid');
     grid.innerHTML = "";
 
     if (items.length === 0) {
-        grid.innerHTML = '<div class="col-span-full text-center py-20 text-gray-500 italic">Drama tidak ditemukan.</div>';
+        grid.innerHTML = '<div class="col-span-full text-center py-20 text-gray-500 italic">Judul drama tidak ditemukan.</div>';
         return;
     }
 
@@ -76,7 +78,7 @@ function displayItems(items) {
         div.className = "cursor-pointer group animate-slideUp";
         div.onclick = () => openDetail(id, name, item.introduction || "");
         div.innerHTML = `
-            <div class="aspect-[3/4] rounded-xl overflow-hidden bg-slate-800 mb-2 shadow-lg">
+            <div class="aspect-[3/4] rounded-xl overflow-hidden bg-slate-800 mb-2 shadow-lg ring-1 ring-white/5">
                 <img src="${cover}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" loading="lazy">
             </div>
             <h3 class="text-[11px] font-semibold line-clamp-2 px-1 text-gray-200 leading-tight">${name}</h3>
@@ -85,7 +87,7 @@ function displayItems(items) {
     });
 }
 
-// Buka Detail & Episod
+// Detail Modal & Fetch Episode
 async function openDetail(id, title, desc) {
     const modal = document.getElementById('detailModal');
     const epList = document.getElementById('modalEpisodes');
@@ -95,21 +97,26 @@ async function openDetail(id, title, desc) {
     document.getElementById('modalTitle').innerText = title;
     document.getElementById('modalDesc').innerText = desc || "Tidak ada deskripsi.";
     document.getElementById('playerContainer').classList.add('hidden');
-    epList.innerHTML = '<p class="text-center text-xs py-10 opacity-50">Memuat episode...</p>';
+    epList.innerHTML = '<p class="text-center text-xs py-10 opacity-50 italic">Memuat episode...</p>';
 
+    // Load Episode menggunakan bookId
     epData = await apiGet(`/allepisode?bookId=${id}`);
     epList.innerHTML = "";
 
-    epData.forEach((ep, i) => {
-        const btn = document.createElement('button');
-        btn.className = "w-full text-left bg-[#0b0f1a] p-4 rounded-xl text-[10px] border border-gray-800 flex justify-between items-center mb-1 hover:border-red-600 transition";
-        btn.innerHTML = `<span>EPISODE ${i + 1} - ${ep.chapterName || 'START'}</span><i class="fas fa-play-circle text-red-600"></i>`;
-        btn.onclick = () => playEp(i);
-        epList.appendChild(btn);
-    });
+    if (epData.length === 0) {
+        epList.innerHTML = '<p class="text-center text-yellow-600 text-xs py-5">Gagal memuat episode atau belum tersedia.</p>';
+    } else {
+        epData.forEach((ep, i) => {
+            const btn = document.createElement('button');
+            btn.className = "w-full text-left bg-[#0b0f1a] p-4 rounded-xl text-[10px] border border-gray-800 flex justify-between items-center mb-1 hover:border-red-600 transition";
+            btn.innerHTML = `<span>EPISODE ${i + 1} - ${ep.chapterName || 'START'}</span><i class="fas fa-play-circle text-red-600"></i>`;
+            btn.onclick = () => playEp(i);
+            epList.appendChild(btn);
+        });
+    }
 }
 
-// Pemutar Video
+// Logika Pemutar Video
 function playEp(idx) {
     if (idx < 0 || idx >= epData.length) return;
     curIdx = idx;
@@ -117,42 +124,58 @@ function playEp(idx) {
     const player = document.getElementById('mainPlayer');
     
     let url = "";
+    // Navigasi CDN Path
     if (ep.cdnList?.[0]?.videoPathList?.[0]) {
         const cdn = ep.cdnList.find(c => c.isDefault === 1) || ep.cdnList[0];
-        url = (cdn.videoPathList.find(v => v.isDefault === 1) || cdn.videoPathList[0]).videoPath;
+        const res = cdn.videoPathList.find(v => v.isDefault === 1) || cdn.videoPathList[0];
+        url = res.videoPath;
     }
     if (!url) url = ep.videoUrl || ep.url;
 
     if (url) {
         document.getElementById('playerContainer').classList.remove('hidden');
         player.src = url;
-        player.play();
+        player.load();
+        player.play().catch(() => console.log("Interaction needed"));
+        
+        // Setup tombol Prev/Next & Auto-next
         document.getElementById('prevBtn').onclick = () => playEp(curIdx - 1);
         document.getElementById('nextBtn').onclick = () => playEp(curIdx + 1);
         player.onended = () => playEp(curIdx + 1);
+        
+        // Scroll ke atas player
         document.querySelector('#detailModal .overflow-y-auto').scrollTop = 0;
+    } else {
+        alert("Link video tidak tersedia.");
     }
 }
 
-// Tab & FS
+// Fullscreen
+function toggleFS() {
+    const v = document.getElementById('mainPlayer');
+    if (!document.fullscreenElement) {
+        if (v.requestFullscreen) v.requestFullscreen();
+        else if (v.webkitRequestFullscreen) v.webkitRequestFullscreen();
+    } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+    }
+}
+
+// Tab Handler
 async function renderGrid(path, label) {
     document.getElementById('sectionLabel').innerText = label;
-    const data = await apiGet(path);
-    displayItems(data);
+    const items = await apiGet(path);
+    displayDrama(items);
 }
 
 function changeTab(type, el) {
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('tab-active'));
     el.classList.add('tab-active');
+    
     let path = `/${type}`;
     if (type === 'dubindo') path += "?classify=terbaru&page=1";
+    
     renderGrid(path, type.toUpperCase());
-}
-
-function toggleFS() {
-    const v = document.getElementById('mainPlayer');
-    if (!document.fullscreenElement) v.requestFullscreen?.() || v.webkitRequestFullscreen?.();
-    else document.exitFullscreen?.();
 }
 
 function closeModal() {
@@ -162,6 +185,9 @@ function closeModal() {
     document.body.style.overflow = "auto";
 }
 
-document.getElementById('searchInput')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleSearch(); });
+document.getElementById('searchInput')?.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') handleSearch();
+});
 
+// Load awal
 window.onload = () => renderGrid('/trending', 'TRENDING');
