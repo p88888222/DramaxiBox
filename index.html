@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dramaxin Box</title>
+    <title>Dramaxin Box - Streaming</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -19,23 +19,23 @@
 <body class="pb-24">
 
     <header class="p-4 flex justify-between items-center sticky top-0 bg-[#0b0f1a]/95 backdrop-blur-md z-40 border-b border-gray-800">
-        <button onclick="goHome()" class="text-xl font-bold text-red-600 italic tracking-tighter hover:scale-105 transition">DRAMAXIN</button>
-        <div class="text-[10px] text-gray-500 font-mono">V2.1-LIVE</div>
+        <button onclick="goHome()" class="text-xl font-bold text-red-600 italic tracking-tighter hover:scale-105 transition active:scale-95">DRAMAXIN</button>
+        <div class="text-[10px] text-gray-500 font-mono">LIVE-PRO</div>
     </header>
 
     <main class="px-4 mt-4">
         <div class="mb-6 flex gap-2">
             <input id="searchInput" type="text" placeholder="Cari judul (contoh: pewaris)..." 
                 class="w-full bg-[#161b2c] border-none rounded-lg p-3 text-sm focus:ring-1 focus:ring-red-600 outline-none text-white shadow-inner">
-            <button onclick="handleSearch()" class="bg-red-600 px-5 rounded-lg transition hover:bg-red-700">
+            <button onclick="handleSearch()" class="bg-red-600 px-5 rounded-lg transition hover:bg-red-700 active:scale-95">
                 <i class="fa-solid fa-magnifying-glass text-white"></i>
             </button>
         </div>
 
-        <h2 id="sectionLabel" class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4 italic">SEMUA DRAMA</h2>
+        <h2 id="sectionLabel" class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4 italic">TRENDING</h2>
 
         <div id="dramaGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            <div class="col-span-full text-center py-20 text-red-500 animate-pulse font-semibold">Menghubungkan...</div>
+            <div class="col-span-full text-center py-20 text-red-500 animate-pulse font-semibold">Menghubungkan ke server...</div>
         </div>
     </main>
 
@@ -48,15 +48,19 @@
 
             <div class="p-4 overflow-y-auto">
                 <div id="playerContainer" class="hidden mb-6">
-                    <div class="relative group aspect-video bg-black rounded-lg overflow-hidden ring-1 ring-white/10">
+                    <div class="relative group aspect-video bg-black rounded-lg overflow-hidden ring-1 ring-white/10 shadow-lg">
                         <video id="mainPlayer" controls playsinline class="w-full h-full"></video>
-                        <button onclick="toggleFS()" class="absolute bottom-12 right-4 bg-black/60 text-white px-2 py-1 rounded text-[10px] opacity-0 group-hover:opacity-100 transition backdrop-blur-sm">
+                        <button onclick="toggleFS()" class="absolute bottom-12 right-4 bg-black/60 text-white px-3 py-1 rounded-md text-[10px] opacity-0 group-hover:opacity-100 transition backdrop-blur-sm">
                             <i class="fas fa-expand mr-1"></i> Fullscreen
                         </button>
                     </div>
                     <div class="flex justify-between gap-2 mt-4">
-                        <button id="prevBtn" class="flex-1 bg-slate-800 hover:bg-slate-700 py-2.5 rounded-lg text-[10px] font-bold text-white transition">PREV</button>
-                        <button id="nextBtn" class="flex-1 bg-red-600 hover:bg-red-700 py-2.5 rounded-lg text-[10px] font-bold text-white transition">NEXT</button>
+                        <button id="prevBtn" class="flex-1 bg-slate-800 hover:bg-slate-700 py-2.5 rounded-lg text-[10px] font-bold text-white transition">
+                            <i class="fa-solid fa-backward mr-1"></i> PREV
+                        </button>
+                        <button id="nextBtn" class="flex-1 bg-red-600 hover:bg-red-700 py-2.5 rounded-lg text-[10px] font-bold text-white transition">
+                            NEXT <i class="fa-solid fa-forward ml-1"></i>
+                        </button>
                     </div>
                 </div>
 
@@ -67,11 +71,19 @@
         </div>
     </div>
 
-    <nav class="fixed bottom-0 left-0 right-0 bg-[#161b2c] border-t border-gray-800 flex justify-around items-center z-50">
-        <button onclick="changeTab('trending', this)" class="nav-btn py-4 text-gray-500 w-full transition tab-active"><i class="fa-solid fa-fire text-lg"></i></button>
-        <button onclick="changeTab('latest', this)" class="nav-btn py-4 text-gray-500 w-full transition"><i class="fa-solid fa-clock text-lg"></i></button>
-        <button onclick="changeTab('dubindo', this)" class="nav-btn py-4 text-gray-500 w-full transition"><i class="fa-solid fa-flag text-lg"></i></button>
-        <button onclick="changeTab('vip', this)" class="nav-btn py-4 text-gray-500 w-full transition"><i class="fa-solid fa-gem text-lg"></i></button>
+    <nav class="fixed bottom-0 left-0 right-0 bg-[#161b2c] border-t border-gray-800 flex justify-around items-center z-50 shadow-2xl">
+        <button onclick="changeTab('trending', this)" class="nav-btn py-4 text-gray-500 w-full transition tab-active">
+            <i class="fa-solid fa-fire text-lg"></i>
+        </button>
+        <button onclick="changeTab('latest', this)" class="nav-btn py-4 text-gray-500 w-full transition">
+            <i class="fa-solid fa-clock text-lg"></i>
+        </button>
+        <button onclick="changeTab('dubindo', this)" class="nav-btn py-4 text-gray-500 w-full transition">
+            <i class="fa-solid fa-flag text-lg"></i>
+        </button>
+        <button onclick="changeTab('vip', this)" class="nav-btn py-4 text-gray-500 w-full transition">
+            <i class="fa-solid fa-gem text-lg"></i>
+        </button>
     </nav>
 
     <script src="app.js"></script>
