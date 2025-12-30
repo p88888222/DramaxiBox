@@ -35,7 +35,34 @@ async function apiGet(path) {
         return [];
     }
 }
+async function changeTab(type, el) {
+    if (el) setActiveTab(el); // Mengatur tampilan tombol yang aktif
+    
+    const container = document.getElementById('mainContainer');
+    const label = document.getElementById('sectionLabel');
+    
+    // Pemetaan nama label untuk tampilan
+    const labelMap = { 
+        trending: 'TRENDING', 
+        foryou: 'UNTUK ANDA', 
+        dubindo: 'DUBBING INDO', 
+        vip: 'KONTEN VIP',
+        latest: 'TERBARU'
+    };
+    
+    label.innerText = labelMap[type] || "DRAMA";
+    container.innerHTML = '<div class="col-span-full text-center py-20 text-red-500 animate-pulse font-bold">MEMUAT KATEGORI...</div>';
 
+    // Menentukan path API berdasarkan tipe kategori
+    const path = type === 'dubindo' ? '/dubindo?classify=terbaru&page=1' : `/${type}`;
+    
+    try {
+        const data = await apiGet(path); // Mengambil data dari server
+        renderGrid(data); // Menampilkan data ke dalam grid website
+    } catch (error) {
+        container.innerHTML = '<p class="col-span-full text-center py-20 opacity-50">Gagal memuat kategori ini.</p>';
+    }
+}
 // 2. FUNGSI PENCARIAN (Server-Side Query)
 async function performSearch(query) {
     if (!query) return;
@@ -113,18 +140,74 @@ async function openDetail(id, title, desc) {
 
 function playEp(idx) {
     if (idx < 0 || idx >= epData.length) return;
+    
+    curIdx = idx; // Update index episode aktif
     const ep = epData[idx];
     const player = document.getElementById('mainPlayer');
+    const playerContainer = document.getElementById('playerContainer');
+    
+    // Logika pengambilan URL Video
     let url = ep.videoUrl || ep.url;
     if (ep.cdnList?.[0]?.videoPathList?.[0]) {
         const cdn = ep.cdnList.find(c => c.isDefault === 1) || ep.cdnList[0];
         url = (cdn.videoPathList.find(v => v.isDefault === 1) || cdn.videoPathList[0]).videoPath;
     }
+
     if (url) {
-        document.getElementById('playerContainer').classList.remove('hidden');
+        playerContainer.classList.remove('hidden');
         player.src = url;
+        player.load();
         player.play();
+
+        // Scroll ke atas agar player terlihat jika di mobile
+        document.querySelector('#detailModal .overflow-y-auto').scrollTop = 0;
+
+        // Hubungkan Tombol Next & Prev
+        updateNavButtons();
+    } else {
+        alert("Link video tidak ditemukan untuk episode ini.");
     }
+}
+
+// 2. Fungsi Update Tombol Next & Prev
+function updateNavButtons() {
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const player = document.getElementById('mainPlayer');
+
+    if (prevBtn) {
+        prevBtn.onclick = () => playEp(curIdx - 1);
+        // Sembunyikan prev jika di episode pertama
+        prevBtn.style.opacity = curIdx === 0 ? "0.3" : "1";
+        prevBtn.disabled = curIdx === 0;
+    }
+
+    if (nextBtn) {
+        nextBtn.onclick = () => playEp(curIdx + 1);
+        // Sembunyikan next jika di episode terakhir
+        nextBtn.style.opacity = curIdx === epData.length - 1 ? "0.3" : "1";
+        nextBtn.disabled = curIdx === epData.length - 1;
+    }
+
+    // Auto Next saat video selesai
+    player.onended = () => {
+        if (curIdx < epData.length - 1) {
+            playEp(curIdx + 1);
+        }
+    };
+}
+
+// 3. Fungsi Tutup Modal (Close)
+function closeModal() {
+    const modal = document.getElementById('detailModal');
+    const player = document.getElementById('mainPlayer');
+    const playerContainer = document.getElementById('playerContainer');
+
+    modal.classList.add('hidden');
+    player.pause();
+    player.src = ""; // Membersihkan memori player
+    playerContainer.classList.add('hidden');
+    document.body.style.overflow = "auto";
 }
 
 // 6. INIT LOAD (Telegram & Deep Link)
