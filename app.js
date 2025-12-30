@@ -199,3 +199,11 @@ if (window.Telegram && window.Telegram.WebApp) {
 // Jalankan fungsi deep link saat halaman dimuat
 window.addEventListener('load', handleTelegramDeepLink);
 
+// Menangkap ID dari Telegram
+window.addEventListener('load', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const bookId = urlParams.get('bookId');
+    if (bookId && typeof openDetail === 'function') {
+        setTimeout(() => openDetail(bookId, "Memuat...", ""), 1000);
+    }
+});
