@@ -91,33 +91,63 @@ async function openDetail(id, title, desc) {
 }
 
 function playEp(idx) {
-    if (idx < 0 || idx >= epData.length) return;
-    curIdx = idx;
+    if (idx < 0 || idx >= epData.length) {
+        console.log("Episode habis atau tidak valid");
+        return;
+    }
+    
+    curIdx = idx; // Update index global
     const player = document.getElementById('mainPlayer');
-    document.getElementById('playerContainer').classList.remove('hidden');
+    const playerContainer = document.getElementById('playerContainer');
+    
+    // Tampilkan container player
+    playerContainer.classList.remove('hidden');
+
     let ep = epData[idx];
     let url = ep.videoUrl || ep.url;
+    
+    // Logika CDN (Tetap sama)
     if (ep.cdnList?.[0]?.videoPathList?.[0]) {
-        url = (ep.cdnList.find(c => c.isDefault === 1) || ep.cdnList[0]).videoPathList[0].videoPath;
+        const cdn = ep.cdnList.find(c => c.isDefault === 1) || ep.cdnList[0];
+        url = cdn.videoPathList[0].videoPath;
     }
-    player.src = url;
-    player.play();
-    document.getElementById('prevBtn').onclick = () => playEp(curIdx - 1);
-    document.getElementById('nextBtn').onclick = () => playEp(curIdx + 1);
+
+    if (url) {
+        // 1. Reset player sebelum ganti sumber
+        player.pause();
+        player.src = url;
+        player.load();
+
+        // 2. Jalankan video (Gunakan catch untuk menangani blokir autoplay browser)
+        player.play().catch(error => {
+            console.log("Autoplay diblokir browser, menunggu klik manual.");
+        });
+
+        // 3. EVENT AUTO-NEXT (PENTING)
+        // Kita gunakan onended agar ketika durasi habis, fungsi ini terpanggil
+        player.onended = function() {
+            console.log("Video selesai, memutar episode selanjutnya...");
+            const nextIndex = curIdx + 1;
+            if (nextIndex < epData.length) {
+                playEp(nextIndex); // Panggil diri sendiri dengan index berikutnya
+            } else {
+                alert("Anda telah mencapai episode terakhir.");
+            }
+        };
+
+        // 4. Update Tombol Navigasi Manual
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        
+        if (prevBtn) prevBtn.onclick = () => playEp(curIdx - 1);
+        if (nextBtn) nextBtn.onclick = () => playEp(curIdx + 1);
+
+        // Scroll otomatis ke atas agar player terlihat
+        const modalContent = document.querySelector('#detailModal .overflow-y-auto');
+        if (modalContent) modalContent.scrollTop = 0;
+    }
 }
 
-function closeModal() {
-    document.getElementById('detailModal').classList.add('hidden');
-    const player = document.getElementById('mainPlayer');
-    player.pause();
-    player.src = "";
-    document.body.style.overflow = "auto";
-}
-
-function setActiveTab(el) {
-    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('tab-active'));
-    el.classList.add('tab-active');
-}
 
 // 7. INISIALISASI (Event Listener Utama)
 document.addEventListener('DOMContentLoaded', () => {
