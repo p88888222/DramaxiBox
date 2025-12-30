@@ -6,95 +6,60 @@
     <title>DRAMAXIN BOX</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    
     <style>
-        body { background-color: #05070a; color: white; -webkit-tap-highlight-color: transparent; padding-bottom: 80px; }
-        .tab-active { color: #ef4444; }
-        .tab-active i { transform: translateY(-5px); color: #ef4444; text-shadow: 0 0 10px rgba(239, 68, 68, 0.5); }
+        body { background: #05070a; color: white; padding-bottom: 80px; }
+        .tab-active i { color: #ef4444; transform: scale(1.1); transition: 0.3s; }
+        .tab-active span { color: #ef4444; }
         .animate-slideUp { animation: slideUp 0.4s ease-out; }
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body class="font-sans">
-
     <header class="sticky top-0 z-40 bg-[#05070a]/90 backdrop-blur-md p-4 border-b border-white/5">
-        <div class="flex items-center justify-between mb-4">
-            <div class="flex items-center gap-2">
-                <div class="bg-red-600 p-1.5 rounded-lg text-xs">
-                    <i class="fa-solid fa-bolt text-white"></i>
-                </div>
-                <h1 class="text-lg font-black italic tracking-tighter">DRAMAXIN<span class="text-red-600">BOX</span></h1>
-            </div>
-            <div id="loadingStatus" class="hidden text-red-600 text-xs animate-pulse font-bold">● LIVE</div>
-        </div>
-        
+        <h1 class="text-lg font-black italic mb-4">DRAMAXIN<span class="text-red-600">BOX</span></h1>
         <div class="relative">
-            <i class="fa-solid fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-xs"></i>
-            <input type="text" id="searchInput" 
-                class="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 pl-11 pr-4 focus:outline-none focus:ring-1 focus:ring-red-600 transition text-sm" 
-                placeholder="Cari drama favoritmu...">
+            <i class="fa-solid fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"></i>
+            <input type="text" id="searchInput" class="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 pl-11 text-sm focus:outline-none focus:ring-1 focus:ring-red-600" placeholder="Cari drama...">
         </div>
     </header>
 
     <main class="p-4">
-        <div id="sectionLabel" class="text-[10px] font-bold text-gray-500 mb-4 tracking-[0.2em] uppercase flex items-center gap-2">
-            <span class="w-2 h-2 bg-red-600 rounded-full"></span> Koleksi Terbaru
-        </div>
-        <div id="mainContainer" class="grid grid-cols-3 gap-3">
-            </div>
+        <div id="sectionLabel" class="text-[10px] font-bold text-gray-500 mb-4 tracking-widest uppercase">Koleksi</div>
+        <div id="mainContainer" class="grid grid-cols-3 gap-3"></div>
     </main>
 
-    <footer class="fixed bottom-0 inset-x-0 z-50 bg-[#0b0f1a]/95 backdrop-blur-lg border-t border-white/5 px-2 py-2">
-        <div class="flex justify-around items-center">
-            <button onclick="loadAllDrama(this)" class="nav-btn tab-active flex flex-col items-center gap-1 flex-1 transition-all">
-                <i class="fa-solid fa-house-chimney text-lg"></i>
-                <span class="text-[9px] font-bold uppercase tracking-tighter">Home</span>
-            </button>
-            <button onclick="changeTab('trending', this)" class="nav-btn flex flex-col items-center gap-1 flex-1 transition-all">
-                <i class="fa-solid fa-fire-flame-curved text-lg text-gray-500"></i>
-                <span class="text-[9px] font-bold uppercase tracking-tighter text-gray-500">Hot</span>
-            </button>
-            <button onclick="changeTab('vip', this)" class="nav-btn flex flex-col items-center gap-1 flex-1 transition-all">
-                <i class="fa-solid fa-crown text-lg text-gray-500"></i>
-                <span class="text-[9px] font-bold uppercase tracking-tighter text-gray-500">VIP</span>
-            </button>
-            <button onclick="changeTab('dubindo', this)" class="nav-btn flex flex-col items-center gap-1 flex-1 transition-all">
-                <i class="fa-solid fa-language text-lg text-gray-500"></i>
-                <span class="text-[9px] font-bold uppercase tracking-tighter text-gray-500">Dub</span>
-            </button>
-        </div>
+    <footer class="fixed bottom-0 inset-x-0 bg-[#0b0f1a]/95 border-t border-white/5 p-2 flex justify-around z-50">
+        <button onclick="changeTab('trending', this)" class="nav-btn tab-active flex flex-col items-center gap-1 flex-1">
+            <i class="fa-solid fa-house text-lg"></i><span class="text-[9px] uppercase font-bold">Home</span>
+        </button>
+        <button onclick="changeTab('latest', this)" class="nav-btn flex flex-col items-center gap-1 flex-1">
+            <i class="fa-solid fa-bolt text-lg"></i><span class="text-[9px] uppercase font-bold">New</span>
+        </button>
+        <button onclick="changeTab('vip', this)" class="nav-btn flex flex-col items-center gap-1 flex-1">
+            <i class="fa-solid fa-crown text-lg"></i><span class="text-[9px] uppercase font-bold">VIP</span>
+        </button>
+        <button onclick="changeTab('dubindo', this)" class="nav-btn flex flex-col items-center gap-1 flex-1">
+            <i class="fa-solid fa-microphone text-lg"></i><span class="text-[9px] uppercase font-bold">Dub</span>
+        </button>
     </footer>
 
     <div id="detailModal" class="fixed inset-0 z-[60] bg-[#05070a] hidden flex flex-col">
-        <div class="flex items-center justify-between p-4 border-b border-white/5">
-            <button onclick="closeModal()" class="w-10 h-10 flex items-center justify-center rounded-full bg-white/5">
-                <i class="fa-solid fa-arrow-left"></i>
-            </button>
-            <span class="font-bold text-xs truncate max-w-[200px]" id="modalTitle">Judul</span>
-            <div class="w-10"></div>
+        <div class="p-4 flex justify-between border-b border-white/5">
+            <button onclick="closeModal()"><i class="fa-solid fa-chevron-left text-xl"></i></button>
+            <span id="modalTitle" class="text-xs font-bold truncate px-4">Judul</span>
+            <div class="w-6"></div>
         </div>
-
-        <div class="flex-1 overflow-y-auto no-scrollbar">
+        <div class="flex-1 overflow-y-auto">
             <div id="playerContainer" class="hidden sticky top-0 bg-black z-10">
-                <video id="mainPlayer" class="w-full aspect-video" controls playsinline webkit-playsinline></video>
-                <div class="flex gap-1 p-2 bg-black/50 backdrop-blur">
-                    <button id="prevBtn" class="flex-1 bg-white/10 py-2.5 rounded-lg text-[10px] font-bold">PREV</button>
-                    <button id="nextBtn" class="flex-1 bg-red-600 py-2.5 rounded-lg text-[10px] font-bold tracking-widest">NEXT EPISODE</button>
+                <video id="mainPlayer" class="w-full aspect-video" controls playsinline></video>
+                <div class="flex p-2 gap-1 bg-black/50 backdrop-blur">
+                    <button id="prevBtn" class="flex-1 bg-white/10 py-3 rounded-lg text-[10px] font-bold">PREV</button>
+                    <button id="nextBtn" class="flex-1 bg-red-600 py-3 rounded-lg text-[10px] font-bold">NEXT</button>
                 </div>
             </div>
-
             <div class="p-5">
-                <div class="bg-white/5 p-4 rounded-2xl mb-6">
-                    <h2 class="text-[10px] font-bold text-red-500 mb-2 uppercase tracking-widest">Sinopsis</h2>
-                    <p id="modalDesc" class="text-xs text-gray-400 leading-relaxed"></p>
-                </div>
-                <h2 class="text-[10px] font-bold text-white mb-4 uppercase tracking-widest">Pilih Episode</h2>
-                <div id="modalEpisodes" class="grid grid-cols-1 gap-2"></div>
+                <p id="modalDesc" class="text-xs text-gray-400 mb-6 leading-relaxed"></p>
+                <div id="modalEpisodes" class="space-y-2"></div>
             </div>
         </div>
     </div>
