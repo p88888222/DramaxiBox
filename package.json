@@ -5,8 +5,7 @@
   "dependencies": {
     "axios": "^1.6.0"
   }
-  {
-  "name": "dramaxibox",
+   "name": "dramaxibox",
   "version": "1.0.0",
   "scripts": {
     "dev": "vite",
@@ -21,5 +20,5 @@
   "devDependencies": {
     "vite": "^5.0.0"
   }
-}
+
 }
